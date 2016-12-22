@@ -1,8 +1,24 @@
 import Component from 'ember-component';
 import computed from 'ember-computed';
 import get from 'ember-metal/get';
+import service from 'ember-service/inject';
+import { task } from 'ember-concurrency';
+import errorMessages from 'client/utils/error-messages';
 
 export default Component.extend({
+  ajax: service(),
+  notify: service(),
+
+  deleteActivity: task(function* (activity) {
+    const activityId = get(activity, 'id');
+    const actorId = get(activity, 'actor.id');
+    const feedUrl = `/feeds/user/${actorId}/activities/${activityId}`;
+    yield get(this, 'ajax').delete(feedUrl).then(() => {
+      get(this, 'activities').removeObject(activity);
+      get(this, 'notify').success('Your feed activity was deleted.');
+    }).catch(err => get(this, 'notify').error(errorMessages(err)));
+  }).enqueue(),
+
   shouldGroup: computed('feedId', {
     get() {
       const [feed] = get(this, 'feedId').split(':');
@@ -10,7 +26,7 @@ export default Component.extend({
     }
   }).readOnly(),
 
-  groupedActivities: computed('activities', {
+  groupedActivities: computed('activities.[]', {
     get() {
       if (get(this, 'shouldGroup') === false) {
         return get(this, 'activities')
@@ -38,6 +54,7 @@ export default Component.extend({
     }
   }).readOnly(),
 
+
   _getGroupingKey(activity) {
     const verb = get(activity, 'verb');
     switch (verb) {
@@ -49,6 +66,12 @@ export default Component.extend({
         return `${verb}_${get(activity, 'rating')}`;
       default:
         throw new Error('Unsupported activity.');
+    }
+  },
+
+  actions: {
+    deleteActivity(activity) {
+      get(this, 'deleteActivity').perform(activity);
     }
   }
 });
