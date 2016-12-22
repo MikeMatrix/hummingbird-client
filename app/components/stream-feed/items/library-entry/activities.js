@@ -3,6 +3,7 @@ import computed from 'ember-computed';
 import get from 'ember-metal/get';
 import service from 'ember-service/inject';
 import { task } from 'ember-concurrency';
+import { invokeAction } from 'ember-invoke-action';
 import errorMessages from 'client/utils/error-messages';
 
 export default Component.extend({
@@ -15,6 +16,9 @@ export default Component.extend({
     const feedUrl = `/feeds/user/${actorId}/activities/${activityId}`;
     yield get(this, 'ajax').delete(feedUrl).then(() => {
       get(this, 'activities').removeObject(activity);
+      if (get(this, 'activities.length') === 0) {
+        invokeAction(this, 'removeGroup');
+      }
       get(this, 'notify').success('Your feed activity was deleted.');
     }).catch(err => get(this, 'notify').error(errorMessages(err)));
   }).enqueue(),

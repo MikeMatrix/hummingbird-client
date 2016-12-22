@@ -24,5 +24,6 @@ export default function errorMessages(obj) {
   if (reason === 'Internal Server Error' || reason.charAt(0) === '<') {
     reason = defaultMessage;
   }
+  console.log(obj, reason);
   return reason;
 }
